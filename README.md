@@ -64,11 +64,6 @@ We built a fully automated data pipeline that updates every hour and stores resu
 
 ---
 
-🧪 Sample Data Format
-
-
----
-
 🗺️ Roadmap
 
 ✅ Collect hourly solar PV generation  
