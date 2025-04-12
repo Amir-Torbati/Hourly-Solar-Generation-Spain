@@ -5,7 +5,7 @@ permissions:
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Every hour UTC
+    - cron: '0 * * * *'  # Every hour (UTC)
   workflow_dispatch:
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install requests pandas
 
-      - name: ⏰ Update today’s hourly solar data (Spain time from 00:00)
+      - name: ⏰ Fetch hourly solar PV data (Spain local day)
         run: python scripts/collect_today_hourly.py
 
       - name: 📤 Commit and push updated data
