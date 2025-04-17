@@ -25,6 +25,8 @@ jobs:
         run: pip install requests pandas
 
       - name: ⏰ Fetch hourly solar PV data (Spain local day)
+        env:
+          ESIOS_API_TOKEN: ${{ secrets.ESIOS_API_TOKEN }}
         run: python scripts/collect_today_hourly.py
 
       - name: 📤 Commit and push updated data
@@ -35,3 +37,4 @@ jobs:
           git commit -m "🕐 Update hourly solar file: $(date -u +'%Y-%m-%d %H:%M:%S')" || echo "No changes"
           git pull --rebase --autostash
           git push
+
