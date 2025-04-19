@@ -18,53 +18,50 @@ TZ = ZoneInfo("Europe/Madrid")
 OUTPUT_DIR = "database"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# --- DATE RANGE ---
-start_date = datetime(2023, 1, 1)
-end_date = datetime.now()
+start_date_local = datetime(2023, 1, 1, 0, 0, tzinfo=TZ)
+end_date_local = datetime.now(TZ).replace(minute=0, second=0, microsecond=0)
 
-print(f"📡 Fetching solar PV data from {start_date.date()} to {end_date.date()}...")
 all_data = []
-current = start_date
+current = start_date_local
 
-# --- MONTHLY LOOP ---
-while current < end_date:
+while current < end_date_local:
     next_month = current + relativedelta(months=1)
-    period_end = min(next_month, end_date)
+    end_local = min(next_month, end_date_local)
+
+    start_utc = current.astimezone(ZoneInfo("UTC"))
+    end_utc = end_local.astimezone(ZoneInfo("UTC"))
 
     params = {
-        "start_date": current.isoformat() + "Z",
-        "end_date": period_end.isoformat() + "Z",
+        "start_date": start_utc.isoformat(),
+        "end_date": end_utc.isoformat(),
         "time_trunc": "hour"
     }
 
-    print(f"⏳ Fetching {current.date()} → {period_end.date()}...")
+    print(f"⏳ Fetching {current.date()} to {end_local.date()}...")
 
     try:
         res = requests.get(BASE_URL, headers=HEADERS, params=params)
         res.raise_for_status()
-        data = res.json()
-        values = data.get("indicator", {}).get("values", [])
-
+        values = res.json().get("indicator", {}).get("values", [])
         df = pd.DataFrame(values)
+
         if not df.empty:
             df["timestamp_local"] = pd.to_datetime(df["datetime"], utc=True).dt.tz_convert(TZ)
             df["value_mw"] = pd.to_numeric(df["value"], errors="coerce")
-            df["date"] = df["timestamp_local"].dt.date
+            df["date"] = df["timestamp_local"].dt.strftime("%Y-%m-%d")
             df["hour"] = df["timestamp_local"].dt.strftime("%H:%M")
             df_clean = df[["timestamp_local", "date", "hour", "value_mw"]]
             all_data.append(df_clean)
-            print(f"✅ Collected {len(df_clean)} rows.")
         else:
-            print("⚠️ No data in this period.")
+            print("⚠️ No data for this month.")
 
     except Exception as e:
-        print(f"❌ Error fetching {current.date()} - {period_end.date()}: {e}")
+        print(f"❌ Error on {current.date()}: {e}")
 
-    current = next_month
+    current = end_local
 
-# --- SAVE RESULTS ---
 if all_data:
-    df_all = pd.concat(all_data).drop_duplicates(subset=["timestamp_local"]).sort_values("timestamp_local")
+    df_all = pd.concat(all_data).drop_duplicates("timestamp_local").sort_values("timestamp_local")
 
     df_all.to_csv(os.path.join(OUTPUT_DIR, "solar_hourly_all.csv"), index=False)
     df_all.to_parquet(os.path.join(OUTPUT_DIR, "solar_hourly_all.parquet"), index=False)
@@ -73,6 +70,7 @@ if all_data:
     con.execute("CREATE OR REPLACE TABLE solar_hourly AS SELECT * FROM df_all")
     con.close()
 
-    print(f"\n✅ Saved {len(df_all)} rows to '{OUTPUT_DIR}/'")
+    print(f"✅ Saved {len(df_all)} rows to {OUTPUT_DIR}/")
 else:
-    print("⚠️ No data was collected.")
+    print("⚠️ No data collected.")
+
