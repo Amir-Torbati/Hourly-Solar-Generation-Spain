@@ -30,7 +30,7 @@ jobs:
         run: python scripts/collect_today_hourly.py
 
       - name: 🧹 Tidy + merge all daily files into main database
-        run: python scripts/tidy_merge_all.py
+        run: python scripts/append_solar_hourly.py
 
       - name: 📤 Commit and push updated data
         run: |
