@@ -51,17 +51,22 @@ else:
 # --- Merge and deduplicate ---
 df_new = pd.concat(all_new, ignore_index=True) if all_new else pd.DataFrame(columns=df_existing.columns)
 df_all = pd.concat([df_existing, df_new], ignore_index=True)
-df_all = df_all.drop_duplicates("timestamp_local").sort_values("timestamp_local")
+df_all = df_all.drop_duplicates(subset=["timestamp_local"]).sort_values("timestamp_local")
 
-# --- Save in ALL formats ---
+# --- Format timestamp_local to fixed string format (for CSV/parquet)
+df_all["timestamp_local"] = pd.to_datetime(df_all["timestamp_local"]).dt.strftime("%Y-%m-%d %H:%M:%S%z")
+
+# --- Save all formats ---
 df_all.to_csv(os.path.join(DB_DIR, "solar_hourly_all.csv"), index=False)
 df_all.to_parquet(os.path.join(DB_DIR, "solar_hourly_all.parquet"), index=False)
 
+# --- Save to DuckDB ---
 con = duckdb.connect(os.path.join(DB_DIR, "solar_hourly.duckdb"))
 con.execute("CREATE OR REPLACE TABLE solar_hourly AS SELECT * FROM df_all")
 con.close()
 
 print(f"✅ Saved all formats: CSV, Parquet, DuckDB — {len(df_all)} total rows.")
+
 
 
 
