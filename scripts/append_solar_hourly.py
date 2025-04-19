@@ -42,7 +42,7 @@ def fetch_day(date_local):
 
     df["timestamp_local"] = pd.to_datetime(df["datetime"], utc=True).dt.tz_convert(TZ)
     df["value_mw"] = pd.to_numeric(df["value"], errors="coerce")
-    df["date"] = df["timestamp_local"].dt.date
+    df["date"] = df["timestamp_local"].dt.strftime("%Y-%m-%d")  # ✅ Safe for Parquet
     df["hour"] = df["timestamp_local"].dt.strftime("%H:%M")
     return df[["timestamp_local", "date", "hour", "value_mw"]]
 
@@ -70,5 +70,6 @@ con.execute("CREATE OR REPLACE TABLE solar_hourly AS SELECT * FROM df_all")
 con.close()
 
 print(f"✅ Appended {len(df_new)} new rows. Total now: {len(df_all)} rows.")
+
 
 
