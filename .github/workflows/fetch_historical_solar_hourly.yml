@@ -1,10 +1,10 @@
-name: Fetch Full Historical Solar Data (Hourly)
+name: Fetch Historical Solar Hourly Data
 
 permissions:
   contents: write
 
 on:
-  workflow_dispatch:  # 👉 Manual run from GitHub Actions tab
+  workflow_dispatch:  # 👉 Trigger manually from GitHub Actions tab
 
 jobs:
   fetch-historical-solar:
@@ -25,15 +25,16 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install requests pandas pyarrow duckdb python-dateutil
 
-      - name: ⚡ Fetch historical solar (hourly) and save to test database
-        run: python scripts/test_fetch_solar_hourly.py
+      - name: ⚡ Fetch full historical solar hourly data
+        run: python scripts/fetch_historical_solar_hourly.py
 
-      - name: 📤 Commit and push updated solar test data
+      - name: 📤 Commit and push updated solar data
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          git add "test_database/"
-          git commit -m "🕰️ Add full historical solar hourly test data" || echo "No changes to commit"
+          git add "database/"
+          git commit -m "☀️ Add full historical solar hourly data" || echo "No changes to commit"
           git pull --rebase --autostash
           git push
+
