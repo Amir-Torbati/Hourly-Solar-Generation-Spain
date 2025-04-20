@@ -7,14 +7,14 @@ from zoneinfo import ZoneInfo
 
 # --- CONFIG ---
 API_TOKEN = os.environ["ESIOS_API_TOKEN"]
-BASE_URL = "https://api.esios.ree.es/indicators/2526"  # ✅ Real solar PV
+BASE_URL = "https://api.esios.ree.es/indicators/2526"  # ✅ Real PV indicator
 HEADERS = {
     "Accept": "application/json",
     "Content-Type": "application/json",
     "x-api-key": API_TOKEN,
 }
 TZ = ZoneInfo("Europe/Madrid")
-OUTPUT_DIR = "database"
+OUTPUT_DIR = "main_database"  # ✅ New folder
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # --- DATE RANGE ---
@@ -61,10 +61,11 @@ if all_data:
     df_all = pd.concat(all_data, ignore_index=True)
     out_csv = os.path.join(OUTPUT_DIR, "solar_raw_2526.csv")
     df_all.to_csv(out_csv, index=False)
+    print("📁 File saved to:", out_csv)
     print(df_all.head(2))
-    print(f"✅ Saved {len(df_all)} rows to {out_csv}")
 else:
     print("⚠️ No data collected.")
+
 
 
 
