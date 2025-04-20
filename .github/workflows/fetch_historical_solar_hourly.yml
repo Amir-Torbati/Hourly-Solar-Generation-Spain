@@ -1,13 +1,13 @@
-name: Fetch Historical Solar PV (Raw - 1293)
+name: Fetch Historical Solar PV (Real - 2526)
 
 permissions:
   contents: write
 
 on:
-  workflow_dispatch:  # Manual run from Actions tab
+  workflow_dispatch:  # Manual trigger only for now
 
 jobs:
-  fetch-raw-solar:
+  fetch-raw-true-solar:
     runs-on: ubuntu-latest
 
     env:
@@ -25,14 +25,15 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install requests pandas python-dateutil
 
-      - name: ☀️ Fetch raw solar PV data from 2023
+      - name: ☀️ Fetch raw real solar PV (2526)
         run: python scripts/fetch_historical_solar_hourly.py
 
-      - name: 📤 Commit and push CSV
+      - name: 📤 Commit to database
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add database/solar_raw_1293.csv
-          git commit -m "☀️ Add raw solar PV data (1293)" || echo "No changes"
+          git add database/solar_raw_2526.csv
+          git commit -m "☀️ Real solar PV (2526)" || echo "No changes"
           git pull --rebase --autostash
           git push
+
