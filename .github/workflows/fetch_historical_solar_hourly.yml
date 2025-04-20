@@ -1,13 +1,13 @@
-name: Fetch Historical Solar PV (Clean - ID 1293)
+name: Fetch Historical Solar PV (Raw - 1293)
 
 permissions:
   contents: write
 
 on:
-  workflow_dispatch:  # 👈 Manual run only
+  workflow_dispatch:  # Manual run from Actions tab
 
 jobs:
-  backfill-solar:
+  fetch-raw-solar:
     runs-on: ubuntu-latest
 
     env:
@@ -23,18 +23,16 @@ jobs:
           python-version: '3.11'
 
       - name: 📦 Install dependencies
-        run: pip install requests pandas pyarrow duckdb python-dateutil
+        run: pip install requests pandas python-dateutil
 
-      - name: ☀️ Fetch historical clean solar PV data
+      - name: ☀️ Fetch raw solar PV data from 2023
         run: python scripts/fetch_historical_solar_hourly.py
 
-      - name: 📤 Commit and push to database/
+      - name: 📤 Commit and push CSV
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add database/
-          git commit -m "☀️ Add full historical solar PV (clean ID: 1293)" || echo "No changes"
+          git add database/solar_raw_1293.csv
+          git commit -m "☀️ Add raw solar PV data (1293)" || echo "No changes"
           git pull --rebase --autostash
           git push
-
-
