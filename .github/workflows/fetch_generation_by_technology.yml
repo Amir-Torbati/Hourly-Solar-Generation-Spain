@@ -1,0 +1,38 @@
+name: Fetch Generation by Technology (1813)
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:  # Manually trigger from GitHub Actions tab
+
+jobs:
+  fetch-gen-by-tech:
+    runs-on: ubuntu-latest
+
+    env:
+      ESIOS_API_TOKEN: ${{ secrets.ESIOS_API_TOKEN }}
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v3
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install dependencies
+        run: pip install requests pandas pyarrow duckdb
+
+      - name: ⚡ Fetch Generation by Technology (ID 1813)
+        run: python scripts/fetch_generation_by_technology.py
+
+      - name: 📤 Commit and push updated generation data
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add database/
+          git commit -m "📊 Update generation by technology: $(date -u +'%Y-%m-%d %H:%M:%S')" || echo "No changes"
+          git pull --rebase --autostash
+          git push
