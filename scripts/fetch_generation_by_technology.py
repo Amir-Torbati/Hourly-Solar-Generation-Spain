@@ -3,56 +3,51 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
-import duckdb
+from dateutil.rrule import rrule, DAILY
+import time
 
 # --- CONFIG ---
 API_TOKEN = os.environ["ESIOS_API_TOKEN"]
-BASE_URL = "https://api.esios.ree.es/indicators/1813"  # Generation by technology
 HEADERS = {
     "Accept": "application/json",
     "Content-Type": "application/json",
     "x-api-key": API_TOKEN,
 }
+BASE_URL = "https://api.esios.ree.es/indicators/1813"  # Generation by tech
 TZ = ZoneInfo("Europe/Madrid")
-OUTPUT_DIR = "database"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+OUTDIR = "test_tech_raw"
+os.makedirs(OUTDIR, exist_ok=True)
 
-# --- TIME RANGE ---
-end_date_local = datetime.now(TZ).replace(minute=0, second=0, microsecond=0)
-start_date_local = end_date_local - timedelta(days=1)
+# --- DATE RANGE ---
+start_date = datetime(2023, 1, 1, tzinfo=TZ)
+end_date = datetime.now(TZ).replace(minute=0, second=0, microsecond=0)
 
-start_utc = start_date_local.astimezone(timezone.utc)
-end_utc = end_date_local.astimezone(timezone.utc)
+for dt_local in rrule(DAILY, dtstart=start_date, until=end_date):
+    filename = os.path.join(OUTDIR, f"{dt_local.date()}-by-tech.csv")
+    if os.path.exists(filename):
+        print(f"✅ Already exists: {filename}")
+        continue
 
-params = {
-    "start_date": start_utc.isoformat(),
-    "end_date": end_utc.isoformat(),
-    "time_trunc": "hour"
-}
+    dt_utc_start = dt_local.astimezone(timezone.utc)
+    dt_utc_end = (dt_local + timedelta(days=1)).astimezone(timezone.utc)
 
-print(f"📡 Fetching from {start_date_local} → {end_date_local}...")
+    params = {
+        "start_date": dt_utc_start.isoformat(),
+        "end_date": dt_utc_end.isoformat(),
+        "time_trunc": "hour"
+    }
 
-try:
-    res = requests.get(BASE_URL, headers=HEADERS, params=params)
-    res.raise_for_status()
-    values = res.json().get("indicator", {}).get("values", [])
-
-    df = pd.DataFrame(values)
-    df["timestamp_local"] = pd.to_datetime(df["datetime"], utc=True).dt.tz_convert(TZ)
-    df["technology"] = df["technology"]
-    df["value_mw"] = pd.to_numeric(df["value"], errors="coerce")
-
-    df_clean = df[["timestamp_local", "technology", "value_mw"]].dropna()
-    df_clean = df_clean.sort_values(["timestamp_local", "technology"])
-
-    # Save all formats
-    df_clean.to_csv(f"{OUTPUT_DIR}/generation_by_technology.csv", index=False)
-    df_clean.to_parquet(f"{OUTPUT_DIR}/generation_by_technology.parquet", index=False)
-
-    con = duckdb.connect(f"{OUTPUT_DIR}/generation_by_technology.duckdb")
-    con.execute("CREATE OR REPLACE TABLE generation_by_technology AS SELECT * FROM df_clean")
-    con.close()
-
-    print(f"✅ Saved {len(df_clean)} rows to: {OUTPUT_DIR}/")
-except Exception as e:
-    print("❌ Error:", e)
+    print(f"⏳ Fetching {dt_local.date()}...")
+    try:
+        res = requests.get(BASE_URL, headers=HEADERS, params=params)
+        res.raise_for_status()
+        values = res.json().get("indicator", {}).get("values", [])
+        if values:
+            df = pd.DataFrame(values)
+            df.to_csv(filename, index=False)
+            print(f"✅ Saved: {filename} ({len(df)} rows)")
+        else:
+            print(f"⚠️ No data for {dt_local.date()}")
+    except Exception as e:
+        print(f"❌ Error on {dt_local.date()}: {e}")
+        time.sleep(5)  # Wait in case of rate limit
