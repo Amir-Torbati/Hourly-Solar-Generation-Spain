@@ -1,13 +1,13 @@
-name: Fetch Historical Solar Hourly Data
+name: Fetch Historical Solar PV (Clean - ID 1293)
 
 permissions:
   contents: write
 
 on:
-  workflow_dispatch:  # 👉 Trigger manually from GitHub Actions tab
+  workflow_dispatch:  # 👈 Manual run only
 
 jobs:
-  fetch-historical-solar:
+  backfill-solar:
     runs-on: ubuntu-latest
 
     env:
@@ -25,16 +25,16 @@ jobs:
       - name: 📦 Install dependencies
         run: pip install requests pandas pyarrow duckdb python-dateutil
 
-      - name: ⚡ Fetch full historical solar hourly data
+      - name: ☀️ Fetch historical clean solar PV data
         run: python scripts/fetch_historical_solar_hourly.py
 
-      - name: 📤 Commit and push updated solar data
+      - name: 📤 Commit and push to database/
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-
-          git add "database/"
-          git commit -m "☀️ Add full historical solar hourly data" || echo "No changes to commit"
+          git add database/
+          git commit -m "☀️ Add full historical solar PV (clean ID: 1293)" || echo "No changes"
           git pull --rebase --autostash
           git push
+
 
