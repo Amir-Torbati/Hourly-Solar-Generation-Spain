@@ -8,7 +8,7 @@ import duckdb
 
 # --- CONFIG ---
 API_TOKEN = os.environ["ESIOS_API_TOKEN"]
-BASE_URL = "https://api.esios.ree.es/indicators/541"
+BASE_URL = "https://api.esios.ree.es/indicators/1293"  # ✅ CLEAN SOLAR PV!
 HEADERS = {
     "Accept": "application/json",
     "Content-Type": "application/json",
@@ -18,12 +18,14 @@ TZ = ZoneInfo("Europe/Madrid")
 OUTPUT_DIR = "database"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# --- DATE RANGE ---
 start_date_local = datetime(2023, 1, 1, 0, 0, tzinfo=TZ)
 end_date_local = datetime.now(TZ).replace(minute=0, second=0, microsecond=0)
 
 all_data = []
 current = start_date_local
 
+# --- MONTHLY LOOP ---
 while current < end_date_local:
     next_month = current + relativedelta(months=1)
     end_local = min(next_month, end_date_local)
@@ -60,17 +62,19 @@ while current < end_date_local:
 
     current = end_local
 
+# --- FINAL SAVE ---
 if all_data:
     df_all = pd.concat(all_data).drop_duplicates("timestamp_local").sort_values("timestamp_local")
 
-    df_all.to_csv(os.path.join(OUTPUT_DIR, "solar_hourly_all.csv"), index=False)
-    df_all.to_parquet(os.path.join(OUTPUT_DIR, "solar_hourly_all.parquet"), index=False)
+    df_all.to_csv(os.path.join(OUTPUT_DIR, "solar_pv_clean.csv"), index=False)
+    df_all.to_parquet(os.path.join(OUTPUT_DIR, "solar_pv_clean.parquet"), index=False)
 
-    con = duckdb.connect(os.path.join(OUTPUT_DIR, "solar_hourly.duckdb"))
-    con.execute("CREATE OR REPLACE TABLE solar_hourly AS SELECT * FROM df_all")
+    con = duckdb.connect(os.path.join(OUTPUT_DIR, "solar_pv_clean.duckdb"))
+    con.execute("CREATE OR REPLACE TABLE solar_pv_clean AS SELECT * FROM df_all")
     con.close()
 
     print(f"✅ Saved {len(df_all)} rows to {OUTPUT_DIR}/")
 else:
     print("⚠️ No data collected.")
+
 
