@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 # --- CONFIG ---
 API_TOKEN = os.environ["ESIOS_API_TOKEN"]
-BASE_URL = "https://api.esios.ree.es/indicators/1293"
+BASE_URL = "https://api.esios.ree.es/indicators/2526"  # ✅ TRUE solar PV
 HEADERS = {
     "Accept": "application/json",
     "Content-Type": "application/json",
@@ -21,7 +21,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 start_date_local = datetime(2023, 1, 1, 0, 0, tzinfo=TZ)
 end_date_local = datetime.now(TZ).replace(minute=0, second=0, microsecond=0)
 
-# --- COLLECTING IN MONTHLY CHUNKS ---
+# --- FETCH LOOP ---
 all_data = []
 current = start_date_local
 
@@ -49,21 +49,22 @@ while current < end_date_local:
             all_data.append(df)
             print(f"✅ Got {len(df)} rows")
         else:
-            print("⚠️ No data returned")
+            print("⚠️ No data for this month.")
 
     except Exception as e:
         print(f"❌ Error on {current.date()}: {e}")
 
     current = end_local
 
-# --- SAVE RAW CSV ---
+# --- SAVE RAW DATA ---
 if all_data:
     df_all = pd.concat(all_data, ignore_index=True)
-    output_path = os.path.join(OUTPUT_DIR, "solar_raw_1293.csv")
-    df_all.to_csv(output_path, index=False)
-    print(f"✅ Saved {len(df_all)} rows to {output_path}")
+    out_csv = os.path.join(OUTPUT_DIR, "solar_raw_2526.csv")
+    df_all.to_csv(out_csv, index=False)
+    print(f"✅ Saved {len(df_all)} rows to {out_csv}")
 else:
     print("⚠️ No data collected.")
+
 
 
 
