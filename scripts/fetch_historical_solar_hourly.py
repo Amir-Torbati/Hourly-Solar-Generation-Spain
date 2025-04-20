@@ -7,27 +7,30 @@ from zoneinfo import ZoneInfo
 
 # --- CONFIG ---
 API_TOKEN = os.environ["ESIOS_API_TOKEN"]
-BASE_URL = "https://api.esios.ree.es/indicators/1293"  # Clean Solar PV
+BASE_URL = "https://api.esios.ree.es/indicators/1293"
 HEADERS = {
     "Accept": "application/json",
     "Content-Type": "application/json",
     "x-api-key": API_TOKEN,
 }
 TZ = ZoneInfo("Europe/Madrid")
-OUTPUT_DIR = "raw_solar_1293"
+OUTPUT_DIR = "database"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # --- DATE RANGE ---
-start_date_local = datetime(2023, 1, 1, tzinfo=TZ)
+start_date_local = datetime(2023, 1, 1, 0, 0, tzinfo=TZ)
 end_date_local = datetime.now(TZ).replace(minute=0, second=0, microsecond=0)
 
+# --- COLLECTING IN MONTHLY CHUNKS ---
+all_data = []
 current = start_date_local
 
 while current < end_date_local:
-    next_day = current + relativedelta(days=1)
+    next_month = current + relativedelta(months=1)
+    end_local = min(next_month, end_date_local)
 
     start_utc = current.astimezone(ZoneInfo("UTC"))
-    end_utc = next_day.astimezone(ZoneInfo("UTC"))
+    end_utc = end_local.astimezone(ZoneInfo("UTC"))
 
     params = {
         "start_date": start_utc.isoformat(),
@@ -35,32 +38,33 @@ while current < end_date_local:
         "time_trunc": "hour"
     }
 
-    date_str = current.strftime("%Y-%m-%d")
-    filename = os.path.join(OUTPUT_DIR, f"{date_str}-raw.csv")
-
-    if os.path.exists(filename):
-        print(f"✅ Already exists: {filename}")
-        current = next_day
-        continue
-
-    print(f"📡 Fetching raw solar PV for {date_str}...")
+    print(f"📡 Fetching {current.date()} → {end_local.date()}")
 
     try:
         res = requests.get(BASE_URL, headers=HEADERS, params=params)
         res.raise_for_status()
         values = res.json().get("indicator", {}).get("values", [])
-
         if values:
             df = pd.DataFrame(values)
-            df.to_csv(filename, index=False)
-            print(f"✅ Saved {len(df)} rows to {filename}")
+            all_data.append(df)
+            print(f"✅ Got {len(df)} rows")
         else:
-            print(f"⚠️ No data for {date_str}")
+            print("⚠️ No data returned")
 
     except Exception as e:
-        print(f"❌ Error on {date_str}: {e}")
+        print(f"❌ Error on {current.date()}: {e}")
 
-    current = next_day
+    current = end_local
+
+# --- SAVE RAW CSV ---
+if all_data:
+    df_all = pd.concat(all_data, ignore_index=True)
+    output_path = os.path.join(OUTPUT_DIR, "solar_raw_1293.csv")
+    df_all.to_csv(output_path, index=False)
+    print(f"✅ Saved {len(df_all)} rows to {output_path}")
+else:
+    print("⚠️ No data collected.")
+
 
 
 
