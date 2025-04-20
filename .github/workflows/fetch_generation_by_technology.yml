@@ -1,13 +1,13 @@
-name: Fetch Generation by Technology (1813)
+name: Backfill Generation by Technology (from 2023)
 
 permissions:
   contents: write
 
 on:
-  workflow_dispatch:  # Manually trigger from GitHub Actions tab
+  workflow_dispatch:  # 👉 Manual run only
 
 jobs:
-  fetch-gen-by-tech:
+  backfill-generation:
     runs-on: ubuntu-latest
 
     env:
@@ -23,16 +23,17 @@ jobs:
           python-version: '3.11'
 
       - name: 📦 Install dependencies
-        run: pip install requests pandas pyarrow duckdb
+        run: pip install requests pandas python-dateutil
 
-      - name: ⚡ Fetch Generation by Technology (ID 1813)
-        run: python scripts/fetch_generation_by_technology.py
+      - name: ⏳ Backfill generation by tech from 2023 to now
+        run: python scripts/backfill_generation_by_technology.py
 
-      - name: 📤 Commit and push updated generation data
+      - name: 📤 Commit and push downloaded files
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add database/
-          git commit -m "📊 Update generation by technology: $(date -u +'%Y-%m-%d %H:%M:%S')" || echo "No changes"
+          git add test_tech_raw/
+          git commit -m "📦 Add raw generation-by-tech daily data" || echo "No changes"
           git pull --rebase --autostash
           git push
+
