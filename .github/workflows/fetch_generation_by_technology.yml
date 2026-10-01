@@ -1,39 +1,15 @@
-name: Backfill Generation by Technology (from 2023)
-
-permissions:
-  contents: write
-
+name: Legacy collection retired
 on:
-  workflow_dispatch:  # 👉 Manual run only
-
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  backfill-generation:
-    runs-on: ubuntu-latest
-
-    env:
-      ESIOS_API_TOKEN: ${{ secrets.ESIOS_API_TOKEN }}
-
+  migration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
     steps:
-      - name: 📥 Checkout repo
-        uses: actions/checkout@v3
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: 📦 Install dependencies
-        run: pip install requests pandas python-dateutil
-
-      - name: ⏳ Backfill generation by tech from 2023 to now
-        run: python scripts/backfill_generation_by_technology.py
-
-      - name: 📤 Commit and push downloaded files
+      - name: Use the validated grouped collector
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add test_tech_raw/
-          git commit -m "📦 Add raw generation-by-tech daily data" || echo "No changes"
-          git pull --rebase --autostash
-          git push
-
+          echo 'This legacy workflow is retired; see the README migration notice.'
+          echo 'Use Amir-Torbati/ree-data-platform fundamentals.yml for the five verified curves.'
+          exit 1
